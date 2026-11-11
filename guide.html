@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>차곡차곡 설명서</title>
+<meta name="description" content="링크 하나로 각자 자기 가계부를 쓰는 차곡차곡 사용 설명서">
+<meta property="og:title" content="차곡차곡 설명서">
+<meta property="og:description" content="설치·가입 없이 사파리에서 여는 나만의 가계부">
+<meta property="og:image" content="guide/01-cover.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+:root{--bg:#F3F4F6;--card:#fff;--ink:#14171C;--muted:#5B6472;--line:#E3E6EB;--accent:#0E7C66;--soft:#E2F1EC}
+@media (prefers-color-scheme:dark){:root{--bg:#0E1014;--card:#171A20;--ink:#ECEEF2;--muted:#9AA1AE;--line:#272B34;--accent:#3DC3A1;--soft:#143229}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans KR','Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;line-height:1.55;letter-spacing:-0.01em}
+main{max-width:620px;margin:0 auto;padding:28px 16px 80px}
+header{display:flex;align-items:center;gap:12px}
+header img{width:40px;height:40px;border-radius:10px}
+h1{font-size:24px;margin:0}
+.lead{color:var(--muted);margin:14px 0 18px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:sticky;top:0;padding:10px 0;background:var(--bg);z-index:2}
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;min-height:48px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-weight:700;text-decoration:none;cursor:pointer}
+.btn.main{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.tip{background:var(--card);border-radius:16px;padding:14px 16px;font-size:14.5px;color:var(--muted);margin:6px 0 18px}
+.tip b{color:var(--ink)}
+figure{margin:0 0 18px}
+figure img{width:100%;height:auto;display:block;border-radius:18px;background:var(--card)}
+figcaption{font-size:13px;color:var(--muted);margin-top:6px;padding:0 4px}
+.sec{font-size:13px;font-weight:700;color:var(--accent);background:var(--soft);display:inline-block;border-radius:999px;padding:4px 12px;margin:14px 0 12px}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;transition:.2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%)}
+footer{font-size:13px;color:var(--muted);margin-top:30px}
+footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<main>
+  <header><img src="icons/icon-192.png" alt=""><h1>차곡차곡 설명서</h1></header>
+  <p class="lead">링크 하나로 각자 자기 가계부를 써요. 기록은 내 폰과 (연결했다면) 내 구글 시트에만 저장돼서, 같은 링크를 써도 다른 사람과 섞이지 않아요.</p>
+  <div class="actions">
+    <a class="btn main" href="./">앱 열기</a>
+    <button class="btn" id="copyCode" type="button">구글 시트용 코드 복사</button>
+  </div>
+  <div class="tip"><b>1~3단계만 해도 바로 쓸 수 있어요.</b> 4단계부터는 폰·노트북에서 같이 쓰거나 결제 문자를 자동으로 받고 싶을 때만 하면 돼요. 이미지를 길게 눌러 저장하면 친구에게 그대로 보낼 수 있어요.</div>
+
+  <figure><img src="guide/01-cover.png" width="1080" height="1350" alt="차곡차곡 소개. 내 기록은 내 폰과 내 시트에만 저장되고, 카드값과 하루 예산을 자동으로 계산하며, 원하면 결제 문자를 자동 기록할 수 있어요."></figure>
+  <span class="sec">바로 쓰기</span>
+  <figure><img src="guide/02-home.png" width="1080" height="1350" loading="lazy" alt="1단계. 아이폰 사파리에서 5082-8282.github.io/chagok 열기, 공유 버튼, 홈 화면에 추가, 홈 화면 아이콘으로 열어서 시작. 사파리와 홈 화면 앱은 저장 공간이 따로라 꼭 홈 화면 아이콘으로 시작하세요."></figure>
+  <figure><img src="guide/03-start.png" width="1080" height="1350" loading="lazy" alt="2단계. 내 데이터로 시작을 누르고 용돈·생활비가 들어오는 날과 금액, 월급, 쓰는 카드와 결제일을 고르기."></figure>
+  <figure><img src="guide/04-card.png" width="1080" height="1350" loading="lazy" alt="3단계. 카드사 앱의 결제 예정 금액에서 이용기간을 확인하고, 설정의 '이번 결제일에 나가는 돈은 언제까지 쓴 것'을 맞추기. 예: 이용기간 10/12~11/11이면 이번 달 11일까지, 10/1~10/31이면 지난달 말일까지."></figure>
+  <span class="sec">선택 · 구글 시트 연결 (노트북에서)</span>
+  <figure><img src="guide/05-sheet.png" width="1080" height="1350" loading="lazy" alt="4단계. sheets.new 로 새 구글 시트를 만들고 확장 프로그램 → Apps Script, 원래 코드를 지우고 이 페이지의 코드 복사 버튼으로 복사한 코드를 붙여 넣은 뒤 저장."></figure>
+  <figure><img src="guide/06-password.png" width="1080" height="1350" loading="lazy" alt="5단계. 시트를 새로고침하면 차곡차곡 메뉴가 생겨요. 비밀번호 정하기를 누르고 권한 확인에서 고급 → 안전하지 않음으로 이동 → 허용, 메뉴를 한 번 더 눌러 새 비밀번호 입력."></figure>
+  <figure><img src="guide/07-deploy.png" width="1080" height="1350" loading="lazy" alt="6단계. Apps Script에서 배포 → 새 배포 → 유형 웹 앱, 실행은 나, 액세스 권한은 모든 사용자 → 배포 → exec로 끝나는 웹 앱 URL 복사."></figure>
+  <figure><img src="guide/08-connect.png" width="1080" height="1350" loading="lazy" alt="7단계. 차곡차곡 설정 → 구글 시트 연결에 웹 앱 주소와 비밀번호를 넣고 연결하고 동기화. 다른 기기도 같은 주소와 비밀번호를 넣으면 같은 기록."></figure>
+  <figure><img src="guide/09-sms.png" width="1080" height="1350" loading="lazy" alt="8단계, 아이폰. 카드사 결제 알림을 문자로 바꾸고, 단축어 자동화에서 메시지 포함 '승인', 즉시 실행, URL 내용 가져오기에 웹 앱 주소, POST, JSON 본문 action=sms, pw=비밀번호, text=단축어 입력의 메시지. 카카오톡 알림은 읽을 수 없어요."></figure>
+  <figure><img src="guide/10-faq.png" width="1080" height="1350" loading="lazy" alt="자주 묻는 것. 기록은 내 폰과 내 구글 시트에만 저장되고 앱을 만든 사람은 볼 수 없어요. 시트를 연결하지 않으면 가끔 백업용 데이터 복사를 해 두세요. 코드가 업데이트되면 배포 관리에서 새 버전으로 배포하면 주소는 그대로예요."></figure>
+
+  <footer>코드 원본: <a href="https://github.com/5082-8282/chagok/blob/main/apps-script/Code.gs">apps-script/Code.gs</a> · 그림 속 구글 화면은 이해를 돕는 예시라 실제와 조금 다를 수 있어요.</footer>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+const toast = m => { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2400); };
+document.getElementById('copyCode').addEventListener('click', async () => {
+  try {
+    const r = await fetch('apps-script/Code.gs', {cache:'no-store'});
+    if (!r.ok) throw new Error(r.status);
+    await navigator.clipboard.writeText(await r.text());
+    toast('코드를 복사했어요. Apps Script에 붙여 넣으세요.');
+  } catch (e) {
+    location.href = 'https://github.com/5082-8282/chagok/blob/main/apps-script/Code.gs';
+  }
+});
+</script>
+</body>
+</html>

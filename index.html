@@ -467,21 +467,17 @@ const ls = {
 function defaultSettings(){
   return {
     updatedAt: 0,
-    allowance: [{day:1,amount:0},{day:23,amount:0},{day:25,amount:0}],
-    salaryDay: 10,
+    allowance: [{day:1,amount:0}],
+    salaryDay: 25,
     salaryAmount: 0,
     salaryToBudget: 0,
     salaryCalc: defaultSalaryCalc(),
     transit: {rate: 20},
-    fxMain: 'JPY',
+    fxMain: 'USD',
     fxWatch: [],
-    salaryActual: {'2026-10': 851330, '2026-11': 890570},
+    salaryActual: {},
     startDate: today(),
-    cards: [
-      {id:'hana', company:'하나', name:'하나', kind:'credit', billDay:13, cycleStart:1, keys:'하나', color:'#5BA89A'},
-      {id:'woori', company:'우리', name:'우리', kind:'hybrid', billDay:11, cycleStart:28, keys:'우리', color:'#4F86C6'},
-      {id:'shinhan', company:'신한', name:'신한', kind:'hybrid', billDay:11, cycleStart:28, keys:'신한', color:'#3D5FA8'}
-    ],
+    cards: [],
     categories: DEFAULT_CATS.slice(),
     rules: {}
   };
@@ -490,13 +486,13 @@ function emptyState(){ return { v:1, demo:false, settings: defaultSettings(), tx
 
 let S = ls.get(KEY);
 let firstRun = !S;
-if (!S || (S.demo && S.demoV !== 9)) { S = makeDemo(); firstRun = true; }
+if (!S || (S.demo && S.demoV !== 10)) { S = makeDemo(); firstRun = true; }
 S.settings = Object.assign(defaultSettings(), S.settings || {});
 S.settings.cards.forEach(c => { if (!c.company) c.company = c.name; });
 S.settings.salaryCalc = Object.assign(defaultSalaryCalc(), S.settings.salaryCalc || {});
 S.settings.salaryActual = S.settings.salaryActual || {};
 S.settings.transit = Object.assign({rate:20}, S.settings.transit || {});
-S.settings.fxMain = S.settings.fxMain || 'JPY';
+S.settings.fxMain = S.settings.fxMain || 'USD';
 ['tx','savings','goals','fixed','special','bills'].forEach(k => S[k] = S[k] || []);
 if (!S.settings.categories.includes(SPECIAL_CAT)) S.settings.categories.splice(Math.max(0, S.settings.categories.indexOf('기타')), 0, SPECIAL_CAT);
 S.images = S.images || {};
@@ -520,7 +516,14 @@ const laterPay = t => t.pay === 'credit' || t.pay === 'small';
 /* ============ 예시 데이터 ============ */
 function makeDemo(){
   const st = emptyState();
-  st.demo = true; st.demoV = 9;
+  st.demo = true; st.demoV = 10;
+  Object.assign(st.settings, { salaryDay:10, fxMain:'JPY', salaryActual:{},
+    salaryCalc: Object.assign(defaultSalaryCalc(), {auto:true, start:'10:00', end:'16:00'}),
+    cards: [
+      {id:'hana', company:'하나', name:'하나', kind:'credit', billDay:13, cycleEnd:0, cycleMonths:1, keys:'하나', color:'#5BA89A'},
+      {id:'woori', company:'우리', name:'우리', kind:'hybrid', billDay:11, cycleEnd:27, cycleMonths:1, keys:'우리', color:'#4F86C6'},
+      {id:'shinhan', company:'신한', name:'신한', kind:'hybrid', billDay:11, cycleEnd:27, cycleMonths:1, keys:'신한', color:'#3D5FA8'}
+    ]});
   st.settings.allowance = [{day:1,amount:200000},{day:23,amount:100000},{day:25,amount:100000}];
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth()-1, 1);
@@ -551,7 +554,7 @@ function makeDemo(){
     const y = mo.getFullYear(), m = mo.getMonth();
     const p = new Date(y, m, 5); if (p <= end) tx.push({id:uid()+'y', date:ymd(p), time:'09:00', amount:14900, merchant:'유튜브 프리미엄', category:FIXED_CAT, method:'hana', pay:'credit', memo:'', source:'sms', refund:false, updatedAt:1});
   }
-  st.settings.cards.splice(2, 0, {id:'woori2', company:'우리', name:'우리 체크 2', kind:'check', billDay:14, cycleStart:1, keys:'우리체크2', color:'#7E9CC7'});
+  st.settings.cards.splice(2, 0, {id:'woori2', company:'우리', name:'우리 체크 2', kind:'check', billDay:14, cycleEnd:0, cycleMonths:1, keys:'우리체크2', color:'#7E9CC7'});
   for (const [d,amt,mer,cat] of [[2,4800,'이디야커피','카페·간식'],[6,12900,'다이소','생활'],[9,3500,'CU','편의점']]){
     const dt = new Date(now.getFullYear(), now.getMonth(), d); if (dt <= end) tx.push({id:uid()+'w'+d, date:ymd(dt), time:'13:20', amount:amt, merchant:mer, category:cat, method:'woori2', pay:'check', memo:'', source:'sms', refund:false, updatedAt:1});
   }
@@ -598,7 +601,7 @@ const HOLIDAYS = {
   '2027-09-14':'추석 연휴','2027-09-15':'추석','2027-09-16':'추석 연휴','2027-10-03':'개천절','2027-10-04':'대체공휴일(개천절)',
   '2027-10-09':'한글날','2027-10-11':'대체공휴일(한글날)','2027-12-25':'크리스마스','2027-12-27':'대체공휴일(크리스마스)'
 };
-function defaultSalaryCalc(){ return { shift:'before', calibrate:true, auto:true, wage:10320, days:[1,2,3,4,5], start:'14:00', end:'17:50', breakMin:0, period:'prev', paidHoliday:false, weekly:true, rate:0, offDays:[] }; }
+function defaultSalaryCalc(){ return { shift:'before', calibrate:true, auto:false, wage:10320, days:[1,2,3,4,5], start:'09:00', end:'18:00', breakMin:0, period:'prev', paidHoliday:false, weekly:true, rate:0, offDays:[] }; }
 const toMin = t => { const [h,m] = String(t||'0:0').split(':').map(Number); return (h||0)*60 + (m||0); };
 function dayHours(sc){ return Math.max(0, toMin(sc.end) - toMin(sc.start) - (+sc.breakMin||0)) / 60; }
 const hm = h => { const t = Math.round(h*60); return `${Math.floor(t/60)}시간${t%60?` ${t%60}분`:''}`; };
@@ -786,28 +789,54 @@ function monthCalc(ymStr){
   return { lumps, lumpSum, y, m, days, allowance, pocket, fromSalary, fixed, special, specials, free, daily, spent: spent + lumpSum, fixedPaid, remaining: free - spent - lumpSum, byDay, list, kept, over, nospend, counted, streak, dayNo, isCur, laterSum, nowSum, txs };
 }
 
+// 카드 이용기간: '언제까지 쓴 돈이 이번 결제일에 나가나' = M달 전 E일(0이면 말일)까지
+function cyc(card){
+  if (card.cycleEnd != null) return { E: +card.cycleEnd || 0, M: card.cycleMonths == null ? 1 : +card.cycleMonths };
+  const cs = +card.cycleStart || 1;               // 예전 방식(이용기간 시작일)도 그대로 읽기
+  return cs <= 1 ? { E:0, M:1 } : { E: cs - 1, M: 1 };
+}
+const endOf = (y, m0, E) => new Date(y, m0, E ? Math.min(E, dim(new Date(y, m0, 1).getFullYear(), new Date(y, m0, 1).getMonth()+1)) : dim(new Date(y, m0, 1).getFullYear(), new Date(y, m0, 1).getMonth()+1));
 function billDateFor(dateStr, card){
-  const [y,m,d] = dateStr.split('-').map(Number);
-  const cs = +card.cycleStart || 1;
-  const add = cs <= 1 ? 1 : (d >= cs ? 2 : 1);
-  const b = new Date(y, m-1+add, 1);
-  return ymd(new Date(b.getFullYear(), b.getMonth(), Math.min(+card.billDay||1, dim(b.getFullYear(), b.getMonth()+1))));
+  const { E, M } = cyc(card); const t = toDate(dateStr);
+  let end = endOf(t.getFullYear(), t.getMonth(), E);
+  if (t > end) end = endOf(t.getFullYear(), t.getMonth()+1, E);
+  const bm = new Date(end.getFullYear(), end.getMonth()+M, 1);
+  return ymd(new Date(bm.getFullYear(), bm.getMonth(), Math.min(+card.billDay||1, dim(bm.getFullYear(), bm.getMonth()+1))));
 }
 function periodFor(billStr, card){
-  const b = toDate(billStr); const cs = +card.cycleStart || 1;
-  if (cs <= 1){
-    const s = new Date(b.getFullYear(), b.getMonth()-1, 1), e = new Date(b.getFullYear(), b.getMonth(), 0);
-    return [ymd(s), ymd(e)];
-  }
-  const sm = new Date(b.getFullYear(), b.getMonth()-2, 1), em = new Date(b.getFullYear(), b.getMonth()-1, 1);
-  const s = new Date(sm.getFullYear(), sm.getMonth(), Math.min(cs, dim(sm.getFullYear(), sm.getMonth()+1)));
-  const e = new Date(em.getFullYear(), em.getMonth(), Math.min(cs-1, dim(em.getFullYear(), em.getMonth()+1)));
-  return [ymd(s), ymd(e)];
+  const { E, M } = cyc(card); const b = toDate(billStr);
+  const em = new Date(b.getFullYear(), b.getMonth()-M, 1);
+  const end = endOf(em.getFullYear(), em.getMonth(), E);
+  const prevEnd = endOf(em.getFullYear(), em.getMonth()-1, E);
+  const start = new Date(prevEnd.getFullYear(), prevEnd.getMonth(), prevEnd.getDate()+1);
+  return [ymd(start), ymd(end)];
 }
 function cycleText(card){
-  const cs = +card.cycleStart || 1;
-  return cs <= 1 ? '지난달 1일 ~ 말일 사용분' : `전전달 ${cs}일 ~ 지난달 ${cs-1}일 사용분`;
+  const { E, M } = cyc(card);
+  if (M === 1 && !E) return '지난달 1일 ~ 말일 사용분';
+  if (M === 1) return `전전달 ${E+1}일 ~ 지난달 ${E}일 사용분`;
+  return `지난달 ${E+1}일 ~ 이번 달 ${E}일 사용분`;
 }
+// 처음 만들 때 카드사·결제일로 이용기간을 짐작 (카드사 앱의 '이용기간'을 보고 설정에서 고칠 수 있어요)
+function guessCycle(company, billDay){
+  const b = +billDay || 14;
+  if (company === '하나' && b === 13) return { cycleEnd:0, cycleMonths:1 };
+  if (b <= 13) return { cycleEnd: Math.min(30, b + 16), cycleMonths:1 };
+  if (b === 14) return { cycleEnd:0, cycleMonths:1 };
+  return { cycleEnd: b - 14, cycleMonths:0 };
+}
+function cycleOpts(c){
+  const { E, M } = cyc(c), o = [];
+  for (const m of [1,0]) for (let e=0;e<=30;e++){ if (m===0 && e===0) continue;
+    const v = m+':'+e, label = (m===1?'지난달 ':'이번 달 ') + (e?e+'일':'말일') + '까지';
+    o.push(`<option value="${v}" ${E===e&&M===m?'selected':''}>${label}</option>`); }
+  return o.join('');
+}
+const CARD_COS = {
+  '신한':['신한','#2B54A3'], '삼성':['삼성','#1C3F94'], '현대':['현대','#2B2B2B'], 'KB국민':['KB,국민','#B8860B'], '롯데':['롯데','#C8282E'],
+  '하나':['하나','#00857C'], '우리':['우리','#2C7CC4'], 'NH농협':['NH,농협','#0A8A47'], 'BC':['BC,비씨','#D3122A'], 'IBK기업':['IBK,기업','#1D5FAD'],
+  '카카오뱅크':['카카오뱅크','#8A7300'], '토스뱅크':['토스','#3182F6'], '씨티':['씨티','#0A64A4']
+};
 /* 결제 금액만 적기: 내역을 다 못 적은 달은 카드사 결제 금액만 넣는다 */
 function billRec(cardId, billDate){ return live(S.bills).find(b => b.cardId === cardId && b.billDate === billDate); }
 function recordedFor(card, billDate){
@@ -1219,9 +1248,9 @@ function viewCards(){
   if (!ui.card || !cards.some(c=>c.id===ui.card)) ui.card = (cards.find(c=>c.kind==='credit') || cards[0] || {}).id;
   const sel = cards.find(c=>c.id===ui.card);
   return `
-  <section class="card cardtop" id="cardTop" aria-live="polite">${sel ? cardTop(sel) : ''}</section>
+  ${sel ? `<section class="card cardtop" id="cardTop" aria-live="polite">${cardTop(sel)}</section>
   ${deckHtml()}
-  <section class="card stack" id="cardDetail" aria-live="polite">${sel ? cardDetail(sel) : '<div class="empty">설정에서 카드를 추가하세요.</div>'}</section>
+  <section class="card stack" id="cardDetail" aria-live="polite">${cardDetail(sel)}</section>` : `<section class="card stack"><h2>카드</h2><div class="small muted">쓰는 카드를 넣으면 결제일마다 얼마가 나갈지 미리 보여 줘요. 결제 문자도 카드별로 알아봐요.</div><div class="row"><button class="btn main" data-act="go-prefs-cards" type="button">카드 넣으러 가기</button></div></section>`}
   <section class="card stack" aria-labelledby="h-plan">
     <div class="row between"><h2 id="h-plan">정기 · 특별 지출</h2><button class="btn sm" data-act="${ui.planTab==='special'?'add-special':'add-fixed'}" type="button">추가</button></div>
     <div class="seg" role="tablist" aria-label="지출 종류"><button type="button" role="tab" aria-selected="${ui.planTab!=='special'}" class="${ui.planTab!=='special'?'on':''}" data-act="plan-tab" data-v="fixed">정기 지출</button><button type="button" role="tab" aria-selected="${ui.planTab==='special'}" class="${ui.planTab==='special'?'on':''}" data-act="plan-tab" data-v="special">특별 지출</button></div>
@@ -1498,7 +1527,7 @@ function fxHoldings(){
 }
 function fxCard(){
   const hold = fxHoldings();
-  const main = S.settings.fxMain || 'JPY';
+  const main = S.settings.fxMain || 'USD';
   const watch = (S.settings.fxWatch || []).filter(c => CURS[c] && c !== main);
   const others = [...new Set(Object.keys(hold).concat(watch))].filter(c => c !== main);
   const stamp = fxState && fxState.at ? new Date(fxState.at).toLocaleString('ko-KR', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
@@ -1627,7 +1656,7 @@ function viewPrefs(){
       <div class="field"><label for="c-n-${i}">카드 이름</label><input class="input" id="c-n-${i}" data-set="cards.${i}.name" value="${esc(c.name)}"></div>
       <div class="field"><label for="c-k-${i}">종류</label><select class="input" id="c-k-${i}" data-set="cards.${i}.kind"><option value="credit" ${c.kind==='credit'?'selected':''}>신용카드</option><option value="hybrid" ${c.kind==='hybrid'?'selected':''}>체크 + 소액신용</option><option value="check" ${c.kind==='check'?'selected':''}>체크카드</option></select></div>
       <div class="field"><label for="c-b-${i}">결제일</label><select class="input" id="c-b-${i}" data-set="cards.${i}.billDay">${Array.from({length:31},(_,k)=>`<option value="${k+1}" ${+c.billDay===k+1?'selected':''}>${k+1}일</option>`).join('')}</select></div>
-      <div class="field"><label for="c-c-${i}">이용기간 시작일</label><select class="input" id="c-c-${i}" data-set="cards.${i}.cycleStart"><option value="1" ${+c.cycleStart<=1?'selected':''}>지난달 1일부터</option>${Array.from({length:30},(_,k)=>k+2).map(k=>`<option value="${k}" ${+c.cycleStart===k?'selected':''}>전전달 ${k}일부터</option>`).join('')}</select></div>
+      <div class="field full"><label for="c-c-${i}">이번 결제일에 나가는 돈은 언제까지 쓴 것 (카드사 앱의 이용기간 끝날)</label><select class="input" id="c-c-${i}" data-act-change="cycle" data-i="${i}">${cycleOpts(c)}</select></div>
       <div class="field full"><label for="c-w-${i}">결제 문자에서 이 카드를 알아볼 단어 (쉼표로 여러 개)</label><input class="input" id="c-w-${i}" data-set="cards.${i}.keys" value="${esc(c.keys)}"></div>
       <div class="field"><label for="c-col-${i}">카드 색 (사진 없을 때)</label><input class="input" type="color" id="c-col-${i}" data-set="cards.${i}.color" value="${esc(c.color||'#5B6472')}" style="height:42px;padding:4px"></div>
       <div class="field"><label>카드 사진</label><div class="photo-row">${S.images[c.id]&&S.images[c.id].data?`<img src="${S.images[c.id].data}" alt="">`:''}<button class="btn sm" data-act="card-photo" data-id="${c.id}" type="button">${S.images[c.id]&&S.images[c.id].data?'바꾸기':'넣기'}</button>${S.images[c.id]&&S.images[c.id].data?`<button class="btn sm ghost danger" data-act="card-photo-del" data-id="${c.id}" type="button">지우기</button>`:''}</div></div>
@@ -1685,6 +1714,7 @@ function viewPrefs(){
   <section class="card stack" aria-labelledby="h-sync">
     <h2 id="h-sync">구글 시트 연결</h2>
     <div class="small muted">연결하면 노트북과 폰에서 같은 기록을 보고, 아이폰 결제 문자가 자동으로 들어와요. 주소와 비밀번호는 이 기기에만 저장돼요.</div>
+    <a class="link small" href="guide.html" target="_blank" rel="noopener">처음이라면: 그림 설명서 보기 ↗</a>
     <div class="field"><label for="cUrl">Apps Script 웹 앱 주소</label><input class="input" id="cUrl" value="${esc(url)}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off"></div>
     <div class="field"><label for="cPw">비밀번호</label><input class="input" id="cPw" type="password" value="${esc(cn.pw||'')}" autocomplete="off"></div>
     <div class="row wrap"><button class="btn main" data-act="conn-save" type="button">연결하고 동기화</button>${url?'<button class="btn" data-act="sync-now" type="button">지금 동기화</button><button class="btn ghost danger" data-act="conn-del" type="button">연결 끊기</button>':''}</div>
@@ -1869,7 +1899,7 @@ function openLump(opts){
     let bill = opts.bill;
     if (!bill && opts.month){ // 이 달 사용분이 청구되는 결제일
       const [y,m] = opts.month.split('-').map(Number);
-      bill = billDateFor(`${opts.month}-${pad(Math.min(dim(y,m), (+card.cycleStart||1) > 1 ? (+card.cycleStart-1) : dim(y,m)))}`, card);
+      const E = cyc(card).E; bill = billDateFor(`${opts.month}-${pad(E ? Math.min(E, dim(y,m)) : dim(y,m))}`, card);
     }
     if (!bill) bill = nextBillDate(card);
     const ex = billRec(card.id, bill);
@@ -1917,7 +1947,7 @@ function readPlanForm(){
 }
 function openSaving(s){
   const goals = live(S.goals);
-  const d = Object.assign({date:today(), amount:'', goalId:(goals[0]||{}).id||'', memo:'월급 저축', method:'적금', cur:S.settings.fxMain||'JPY', fx:'', rate:''}, s||{});
+  const d = Object.assign({date:today(), amount:'', goalId:(goals[0]||{}).id||'', memo:'월급 저축', method:'적금', cur:S.settings.fxMain||'USD', fx:'', rate:''}, s||{});
   sheetCtx = {kind:'saving', draft:d, isNew: !s || !s.id};
   if (d.method === '외화' && !d.rate) d.rate = fxRate(d.cur) ? +(fxRate(d.cur)*curUnit(d.cur)).toFixed(2) : '';
   drawSaving();
@@ -1970,10 +2000,35 @@ function askConfirm(title, body, okLabel, onOk){
   openSheet(`<h2>${esc(title)}</h2><div class="small">${body}</div><div class="row" style="justify-content:flex-end;gap:8px"><button class="btn" data-act="close" type="button">그만두기</button><button class="btn main" data-act="confirm-ok" type="button">${esc(okLabel)}</button></div>`, sheetCtx);
 }
 function openStart(){
-  sheetCtx = {kind:'start'};
-  openSheet(`<h2>내 용돈으로 시작하기</h2>
-    <div class="small muted">예시 데이터를 지우고, 용돈 금액을 넣어요. 나중에 설정에서 언제든 바꿀 수 있어요.</div>
-    ${[1,23,25].map((d,i)=>`<div class="field"><label for="st-${i}">매달 ${d}일 용돈</label><input class="input num" id="st-${i}" data-day="${d}" inputmode="numeric" placeholder="0" ${i===0?'autofocus':''}></div>`).join('')}
+  sheetCtx = { kind:'start', draft: { al:[{day:1, amount:''}], salDay:25, salAmt:'', cos:[], cards:{} } };
+  drawStart();
+}
+function readStart(){
+  const d = sheetCtx.draft, g = id => document.getElementById(id);
+  d.al = d.al.map((a,i) => ({ day: +(g('sa-d-'+i)||{}).value || a.day, amount: parseInt(((g('sa-a-'+i)||{}).value||'').replace(/[^0-9]/g,''),10) || '' }));
+  if (g('ss-d')) d.salDay = +g('ss-d').value; if (g('ss-a')) d.salAmt = parseInt(g('ss-a').value.replace(/[^0-9]/g,''),10) || '';
+  d.cos.forEach(co => { const c = d.cards[co] = d.cards[co] || {kind:'credit', billDay:14}; const k = g('sc-k-'+co), b = g('sc-b-'+co); if (k) c.kind = k.value; if (b) c.billDay = +b.value; });
+}
+function drawStart(){
+  const d = sheetCtx.draft;
+  const days = sel => Array.from({length:31},(_,k)=>`<option value="${k+1}" ${+sel===k+1?'selected':''}>${k+1}일</option>`).join('');
+  openSheet(`<h2>내 데이터로 시작하기</h2>
+    <div class="small muted">예시 데이터를 지우고 내 정보로 시작해요. 모두 나중에 설정에서 바꿀 수 있어요.</div>
+    <div class="field"><label>1. 한 달 쓸 돈(용돈·생활비)이 들어오는 날</label>
+      ${d.al.map((a,i)=>`<div class="row" style="gap:8px;margin-top:4px"><select class="input" id="sa-d-${i}" style="width:96px">${days(a.day)}</select><input class="input num" id="sa-a-${i}" data-num="1" inputmode="numeric" placeholder="금액 예: 300,000" value="${a.amount?(+a.amount).toLocaleString('ko-KR'):''}" style="flex:1"></div>`).join('')}
+      <button class="link small" data-act="st-add-al" type="button" style="align-self:flex-start;margin-top:4px">+ 들어오는 날 추가</button>
+    </div>
+    <div class="field"><label>2. 월급 (저축하는 돈, 없으면 비워 두기)</label>
+      <div class="row" style="gap:8px"><select class="input" id="ss-d" style="width:96px">${days(d.salDay)}</select><input class="input num" id="ss-a" data-num="1" inputmode="numeric" placeholder="월급 금액" value="${d.salAmt?(+d.salAmt).toLocaleString('ko-KR'):''}" style="flex:1"></div>
+      <span class="tiny muted">시급으로 일한다면 시작한 뒤 설정에서 '자동 계산'을 켜면 공휴일·주휴수당까지 계산해요.</span>
+    </div>
+    <div class="field"><label>3. 쓰는 카드 (여러 개 고르기)</label>
+      <div class="chips">${Object.keys(CARD_COS).map(co=>`<button type="button" class="chip-b ${d.cos.includes(co)?'on':''}" data-pick="sco" data-v="${co}">${co}</button>`).join('')}</div>
+      ${d.cos.map(co => { const c = d.cards[co] || {kind:'credit', billDay:14}; return `<div class="cardset" style="grid-template-columns:1fr 1fr;margin-top:6px"><div class="full" style="font-weight:700">${co}카드</div>
+        <div class="field"><label for="sc-k-${co}">종류</label><select class="input" id="sc-k-${co}"><option value="credit" ${c.kind==='credit'?'selected':''}>신용카드</option><option value="check" ${c.kind==='check'?'selected':''}>체크카드</option><option value="hybrid" ${c.kind==='hybrid'?'selected':''}>체크 + 소액신용</option></select></div>
+        <div class="field"><label for="sc-b-${co}">결제일</label><select class="input" id="sc-b-${co}">${days(c.billDay)}</select></div></div>`; }).join('')}
+      <span class="tiny muted">같은 카드사 카드가 여러 장이면 시작한 뒤 설정 → 카드 추가로 넣으면 돼요.</span>
+    </div>
     <div class="row" style="justify-content:flex-end;gap:8px"><button class="btn" data-act="close" type="button">나중에</button><button class="btn main" data-act="start-ok" type="button">시작하기</button></div>`, sheetCtx);
 }
 
@@ -2002,6 +2057,7 @@ document.addEventListener('change', async e => {
   if (el.id === 'svCur' && sheetCtx && sheetCtx.kind === 'saving'){ readSaving(); const d = sheetCtx.draft; d.rate = fxRate(d.cur) ? +(fxRate(d.cur)*curUnit(d.cur)).toFixed(2) : ''; drawSaving(); return; }
   if (el.id === 'trFor' && sheetCtx && sheetCtx.kind === 'transit'){ readTransit(); const e2 = transitFor(sheetCtx.draft.forM).est; if (e2) sheetCtx.draft.amount = e2; drawTransit(); return; }
   if (el.id === 'lumpDate' && sheetCtx && sheetCtx.kind === 'lump'){ const d = sheetCtx.draft; d.amount = parseInt(($('#lumpAmt').value||'').replace(/[^0-9]/g,''),10)||''; d.billDate = el.value; const ex = billRec(d.cardId, d.billDate); if (ex){ d.id = ex.id; d.amount = ex.amount; sheetCtx.isNew = false; } else if (sheetCtx.isNew === false && d.id && !S.bills.some(b=>b.id===d.id && b.billDate===d.billDate)) { delete d.id; sheetCtx.isNew = true; } drawLump(); return; }
+  if (el.dataset.actChange === 'cycle'){ const c = S.settings.cards[+el.dataset.i]; const [m,e2] = el.value.split(':').map(Number); c.cycleMonths = m; c.cycleEnd = e2; delete c.cycleStart; touch(S.settings); commit(); return; }
   if (el.id === 'cardImgIn'){
     const f = el.files && el.files[0]; if (!f || !photoFor) return;
     try { await startCrop(f, photoFor); }
@@ -2016,7 +2072,7 @@ document.addEventListener('change', async e => {
   let v = el.type === 'checkbox' ? el.checked : el.value;
   if (el.dataset.float) v = parseFloat(String(v).replace(/[^0-9.]/g,'')) || 0;
   else if (el.type === 'checkbox') {}
-  else if (el.dataset.num || ['day','billDay','cycleStart','salaryDay'].includes(k)) v = parseInt(String(v).replace(/[^0-9]/g,''),10) || 0;
+  else if (el.dataset.num || ['day','billDay','salaryDay'].includes(k)) v = parseInt(String(v).replace(/[^0-9]/g,''),10) || 0;
   o[k] = v;
   touch(S.settings);
   commit();
@@ -2036,6 +2092,9 @@ document.addEventListener('click', async e => {
       readSaving(); d.method = v;
       if (v === '외화'){ if (!d.rate && fxRate(d.cur)) d.rate = +(fxRate(d.cur)*curUnit(d.cur)).toFixed(2); loadFx(); }
       drawSaving();
+    } else if (sheetCtx.kind==='start' && k==='sco'){
+      readStart(); const i = d.cos.indexOf(v); if (i>=0) d.cos.splice(i,1); else { d.cos.push(v); d.cards[v] = d.cards[v] || {kind:'credit', billDay:14}; }
+      const sc = $('#sheet').scrollTop; drawStart(); $('#sheet').scrollTop = sc;
     } else if (sheetCtx.kind==='transit' && k==='trm'){
       readTransit(); d.method = v; drawTransit();
     } else if (sheetCtx.kind==='lump' && k==='lcard'){
@@ -2054,6 +2113,7 @@ document.addEventListener('click', async e => {
   const id = btn.dataset.id;
   switch (act){
     case 'add': openTx(); break;
+    case 'go-prefs-cards': location.hash = '#prefs'; setTimeout(() => { const h = document.getElementById('h-cd'); if (h) h.scrollIntoView({block:'start'}); }, 80); break;
     case 'pick-card': if (Date.now() - (ui.dragAt||0) > 350) selectCard(id); break;
     case 'pick-co': { const g = companies().find(g=>g.co===btn.dataset.co); if (g){ const cur = cardById(ui.card); if (cur) ui.lastByCo[cur.company||cur.name] = ui.card; selectCard(frontOf(g,-1,0)); } break; }
     case 'card-photo': pickPhoto(id); break;
@@ -2161,7 +2221,7 @@ document.addEventListener('click', async e => {
     case 'add-al': S.settings.allowance.push({day:1,amount:0}); touch(S.settings); commit(); break;
     case 'al-man': { const a = S.settings.allowance[+btn.dataset.i]; if (a){ const v = parseInt(($('#al-a-'+btn.dataset.i)||{}).value?.replace(/[^0-9]/g,'')||a.amount,10)||0; a.amount = v*10000; touch(S.settings); commit(); toast(`${krRead(a.amount)}으로 고쳤어요`); } break; }
     case 'del-al': S.settings.allowance.splice(+btn.dataset.i,1); touch(S.settings); commit(); break;
-    case 'add-card': S.settings.cards.push({id:uid(), company:'새 카드사', name:'새 카드', kind:'check', billDay:14, cycleStart:1, keys:'', color:'#A38B74'}); touch(S.settings); commit(); break;
+    case 'add-card': S.settings.cards.push({id:uid(), company:'새 카드사', name:'새 카드', kind:'check', billDay:14, cycleEnd:0, cycleMonths:1, keys:'', color:'#A38B74'}); touch(S.settings); commit(); break;
     case 'add-cat': { const v = $('#newCat').value.trim(); if (v && !S.settings.categories.includes(v)){ S.settings.categories.splice(S.settings.categories.length-1,0,v); touch(S.settings); commit(); } break; }
     case 'del-cat': S.settings.categories = S.settings.categories.filter(c=>c!==btn.dataset.c); touch(S.settings); commit(); break;
     case 'sms-test': {
@@ -2193,10 +2253,19 @@ document.addEventListener('click', async e => {
     case 'load-demo': askConfirm('예시 데이터 보기', '지금 기록을 예시 데이터로 바꿔요. 구글 시트에 연결돼 있다면 연결을 먼저 끊어 주세요.', '바꾸기', () => { if (conn()) { toast('연결을 먼저 끊어 주세요'); return; } S = makeDemo(); commit({noSync:true}); }); break;
     case 'reset': askConfirm('모두 지우기', '이 기기의 기록과 설정을 모두 지워요. 구글 시트에 있는 기록은 남아 있어요.', '모두 지우기', () => { S = emptyState(); S.settings.updatedAt = 0; commit({noSync:true}); }); break;
     case 'start-real': openStart(); break;
+    case 'st-add-al': readStart(); sheetCtx.draft.al.push({day:15, amount:''}); drawStart(); break;
     case 'start-ok': {
-      const al = [...document.querySelectorAll('[id^="st-"]')].map(i=>({day:+i.dataset.day, amount: parseInt(i.value.replace(/[^0-9]/g,''),10)||0}));
-      const fresh = emptyState(); fresh.settings.allowance = al; fresh.settings.startDate = today(); touch(fresh.settings);
-      S = fresh; closeSheet(); commit(); toast('시작했어요. 첫 기록을 남겨 보세요.'); break;
+      readStart(); const d = sheetCtx.draft;
+      const fresh = emptyState();
+      fresh.settings.allowance = d.al.filter(a => a.amount).map(a => ({day:a.day, amount:+a.amount}));
+      if (!fresh.settings.allowance.length) fresh.settings.allowance = [{day:1, amount:0}];
+      fresh.settings.salaryDay = d.salDay; fresh.settings.salaryAmount = +d.salAmt || 0;
+      fresh.settings.salaryCalc = Object.assign(defaultSalaryCalc(), {auto:false});
+      fresh.settings.cards = d.cos.map(co => { const c = d.cards[co] || {kind:'credit', billDay:14}; return Object.assign({ id: uid(), company: co, name: co, kind: c.kind, billDay: c.billDay, keys: CARD_COS[co][0], color: CARD_COS[co][1] }, guessCycle(co, c.billDay)); });
+      fresh.settings.startDate = today(); touch(fresh.settings);
+      S = fresh; ui.card = null; closeSheet(); commit();
+      toast(conn() ? '시작했어요. 첫 기록을 남겨 보세요.' : '시작했어요. 설정에서 구글 시트를 연결하면 다른 기기에서도 같이 써요.');
+      break;
     }
     case 'confirm-ok': { const f = sheetCtx && sheetCtx.onOk; closeSheet(); if (f) f(); break; }
   }

@@ -1,11 +1,12 @@
 /**
- * 차곡차곡 가계부: 구글 시트 저장소
+ * 차곡차곡 가계부: 구글 시트 저장소 (각자 자기 구글 시트에 하나씩)
  *
- * 1) 이 코드를 구글 시트의 [확장 프로그램] → [Apps Script]에 붙여 넣으세요.
- * 2) [프로젝트 설정] → [스크립트 속성]에 PASSWORD 라는 이름으로 비밀번호를 추가하세요.
- *    (비밀번호는 이 코드나 GitHub에 적지 마세요.)
- * 3) setup 함수를 한 번 실행해 시트를 만드세요.
- * 4) [배포] → [새 배포] → 웹 앱, 실행: 나, 액세스: 모든 사용자 → 웹 앱 주소를 차곡차곡 설정에 넣으세요.
+ * 1) 새 구글 시트 → [확장 프로그램] → [Apps Script]에 이 코드를 통째로 붙여 넣고 저장하세요.
+ * 2) 시트 탭으로 돌아가 새로고침 → 위 메뉴 [차곡차곡] → [비밀번호 정하기]
+ *    (처음엔 권한 승인 창이 떠요. 비밀번호는 스크립트 속성에만 저장되고 코드·GitHub에는 남지 않아요.)
+ * 3) Apps Script에서 [배포] → [새 배포] → 웹 앱, 실행: 나, 액세스: 모든 사용자
+ *    → 나온 웹 앱 주소와 비밀번호를 차곡차곡 설정 → 구글 시트 연결에 넣으세요.
+ * 설명서: https://5082-8282.github.io/chagok/guide.html
  */
 
 const TABLES = {
@@ -201,4 +202,22 @@ function sheet_(t) {
 }
 function out_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ---------- 시트 메뉴: 비밀번호를 코드 없이 정하기 ---------- */
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('차곡차곡')
+    .addItem('비밀번호 정하기 (처음 한 번)', 'setPasswordPrompt')
+    .addItem('시트 탭 다시 만들기', 'setup')
+    .addToUi();
+}
+function setPasswordPrompt() {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt('차곡차곡 비밀번호', '앱과 아이폰 단축어에 똑같이 넣을 비밀번호를 정해 주세요. (영어+숫자 6자 이상 추천, 구글 비밀번호 말고 새로)', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const pw = r.getResponseText().trim();
+  if (pw.length < 4) { ui.alert('4자 이상으로 정해 주세요.'); return; }
+  PropertiesService.getScriptProperties().setProperty('PASSWORD', pw);
+  setup();
+  ui.alert('저장했어요. 이제 [확장 프로그램] → [Apps Script] → [배포] → [새 배포]에서 웹 앱으로 배포하세요.');
 }

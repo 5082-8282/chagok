@@ -1,5 +1,5 @@
 // 차곡차곡: 앱 화면을 기기에 저장해 두고 빨리 열기
-const CACHE = 'chagok-v1';
+const CACHE = 'chagok-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -11,6 +11,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return; // 구글 시트·글꼴은 그대로 인터넷에서
+  if (url.pathname.endsWith('.gs')) return; // 설명서의 코드 복사는 늘 최신으로
   e.respondWith(
     caches.open(CACHE).then(async cache => {
       const hit = await cache.match(e.request);

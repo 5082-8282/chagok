@@ -281,6 +281,13 @@ main{display:flex;flex-direction:column;gap:12px}
 .rates > div{display:flex;flex-direction:column;gap:1px;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .rates b{font-size:22px;letter-spacing:-0.02em;color:var(--accent)}
 
+.fx-hero{background:var(--chip);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.fx-big{font-size:34px;font-weight:700;letter-spacing:-0.035em;font-variant-numeric:tabular-nums;line-height:1.2}
+.fx-big small{font-size:18px;font-weight:600;margin-left:2px}
+.fx-mini{display:flex;flex-direction:column;gap:8px;font-size:14px}
+.fx-mini em{font-style:normal;font-weight:600;margin-left:4px}
+.fx-mini em.gain{color:var(--ok)} .fx-mini em.loss{color:var(--bad)}
+.fx-set summary{font-size:13px;color:var(--muted);font-weight:600}
 .fx-list{display:flex;flex-direction:column}
 .fx-row{padding:10px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
 .fx-row:last-child{border-bottom:0}
@@ -464,7 +471,8 @@ function defaultSettings(){
     salaryToBudget: 0,
     salaryCalc: defaultSalaryCalc(),
     transit: {rate: 20},
-    fxWatch: ['USD'],
+    fxMain: 'JPY',
+    fxWatch: [],
     salaryActual: {'2026-10': 851330, '2026-11': 890570},
     startDate: today(),
     cards: [
@@ -480,12 +488,13 @@ function emptyState(){ return { v:1, demo:false, settings: defaultSettings(), tx
 
 let S = ls.get(KEY);
 let firstRun = !S;
-if (!S || (S.demo && S.demoV !== 8)) { S = makeDemo(); firstRun = true; }
+if (!S || (S.demo && S.demoV !== 9)) { S = makeDemo(); firstRun = true; }
 S.settings = Object.assign(defaultSettings(), S.settings || {});
 S.settings.cards.forEach(c => { if (!c.company) c.company = c.name; });
 S.settings.salaryCalc = Object.assign(defaultSalaryCalc(), S.settings.salaryCalc || {});
 S.settings.salaryActual = S.settings.salaryActual || {};
 S.settings.transit = Object.assign({rate:20}, S.settings.transit || {});
+S.settings.fxMain = S.settings.fxMain || 'JPY';
 ['tx','savings','goals','fixed','special','bills'].forEach(k => S[k] = S[k] || []);
 if (!S.settings.categories.includes(SPECIAL_CAT)) S.settings.categories.splice(Math.max(0, S.settings.categories.indexOf('기타')), 0, SPECIAL_CAT);
 S.images = S.images || {};
@@ -509,7 +518,7 @@ const laterPay = t => t.pay === 'credit' || t.pay === 'small';
 /* ============ 예시 데이터 ============ */
 function makeDemo(){
   const st = emptyState();
-  st.demo = true; st.demoV = 8;
+  st.demo = true; st.demoV = 9;
   st.settings.allowance = [{day:1,amount:200000},{day:23,amount:100000},{day:25,amount:100000}];
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth()-1, 1);
@@ -567,8 +576,8 @@ function makeDemo(){
     const d = new Date(now.getFullYear(), now.getMonth()-k, 10);
     if (d > end) continue;
     st.savings.push({id:uid()+k, date:ymd(d), amount:500000, goalId:'g1', memo:'월급 저축', method:'적금', updatedAt:1});
-    const r = [1385, 1392, 1410, 1398][k] || 1400, fx = 100;
-    st.savings.push({id:uid()+'b'+k, date:ymd(d), amount:Math.round(fx*r), goalId:'g2', memo:'외화통장', method:'외화', cur:'USD', fx, rate:r, updatedAt:1});
+    const r = [905.4, 912.8, 931.2, 918.6][k] || 920, fx = 16000;
+    st.savings.push({id:uid()+'b'+k, date:ymd(d), amount:Math.round(fx*r/100), goalId:'g2', memo:'엔화 외화통장', method:'외화', cur:'JPY', fx, rate:r, updatedAt:1});
   }
   return st;
 }
@@ -1487,29 +1496,36 @@ function fxHoldings(){
 }
 function fxCard(){
   const hold = fxHoldings();
-  const watch = (S.settings.fxWatch || ['USD']).filter(c => CURS[c]);
-  const list = [...new Set(Object.keys(hold).concat(watch))];
+  const main = S.settings.fxMain || 'JPY';
+  const watch = (S.settings.fxWatch || []).filter(c => CURS[c] && c !== main);
+  const others = [...new Set(Object.keys(hold).concat(watch))].filter(c => c !== main);
   const stamp = fxState && fxState.at ? new Date(fxState.at).toLocaleString('ko-KR', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
-  const demoNote = (!fxState || !fxState.rates) && S.demo;
-  let totNow = 0, totIn = 0;
-  const rows = list.map(c => {
-    const r = fxRate(c), h = hold[c];
-    let holdHtml = '';
-    if (h && h.fx){
-      const now = Math.round(h.fx * r), diff = now - h.krw; totNow += now; totIn += h.krw;
-      const avg = h.krw / h.fx * curUnit(c);
-      holdHtml = `<div class="fx-hold"><span>보유 <b>${fmtFx(c, h.fx)}</b> · 평균 ${rateLabel(c)} ${(+avg).toLocaleString('ko-KR',{maximumFractionDigits:2})}원</span><span>넣은 돈 ${won(h.krw)} → 오늘 <b>${r?won(now):'-'}</b> ${r?`<em class="${diff>=0?'gain':'loss'}">${diff>=0?'+':'−'}${won(Math.abs(diff))} (${(diff/h.krw*100).toFixed(1)}%)</em>`:''}</span></div>`;
-    }
-    return `<div class="fx-row"><div class="row between"><span><b>${c}</b> <span class="muted small">${curName(c)}</span></span><span class="fx-rate">${r ? `${rateLabel(c)} = <b class="num">${(r*curUnit(c)).toLocaleString('ko-KR',{maximumFractionDigits:2})}</b>원` : '-'}</span></div>${holdHtml}</div>`;
-  }).join('');
+  const demo = (!fxState || !fxState.rates) && S.demo;
+  const perUnit = c => fxRate(c) * curUnit(c);
+  const fmtR = v => (+v).toLocaleString('ko-KR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const holdLine = c => { const h = hold[c]; if (!h || !h.fx) return null; const now = Math.round(h.fx * fxRate(c)), diff = now - h.krw; return {h, now, diff, avg: h.krw / h.fx * curUnit(c)}; };
+  const m = holdLine(main), r = fxRate(main);
+  let totNow = 0, totIn = 0; Object.keys(hold).forEach(c => { const x = holdLine(c); if (x && fxRate(c)) { totNow += x.now; totIn += x.h.krw; } });
   return `<section class="card stack" aria-labelledby="h-fx">
-    <div class="row between"><h2 id="h-fx">외화 저축 · 오늘 환율</h2><button class="btn sm" data-act="fx-refresh" type="button" ${fxBusy?'disabled':''}>${fxBusy?'불러오는 중':'새로고침'}</button></div>
-    <div class="small muted">환율 우대 100% = 매매기준율 그대로예요. 여기 환율은 하루 한 번 바뀌는 시장 기준 환율이라, 은행 앱의 매매기준율과 몇 원 차이가 날 수 있어요.${stamp?` (${stamp} 기준)`:''}</div>
-    ${demoNote ? note('warn','미리보기에서는 인터넷 환율을 불러올 수 없어서 예시 환율로 보여줘요. GitHub에 올린 앱에서는 매일 실제 환율을 불러와요.') : (fxErr ? note('bad', fxErr + '. 잠시 뒤 새로고침해 주세요.') : '')}
-    <div class="fx-list">${rows}</div>
-    ${totIn ? `<div class="plan-sum"><div><span class="muted">외화로 넣은 원화</span><b class="num">${won(totIn)}</b></div><div class="tot"><span>오늘 환율로 바꾸면</span><b class="num" style="color:${totNow-totIn>=0?'var(--ok)':'var(--bad)'}">${won(totNow)} (${totNow-totIn>=0?'+':'−'}${won(Math.abs(totNow-totIn))})</b></div></div>` : ''}
-    <div class="field"><label>볼 통화</label><div class="chips">${Object.keys(CURS).map(c=>`<button type="button" class="chip-b ${watch.includes(c)?'on':''}" data-act="fx-watch" data-c="${c}">${c} ${curName(c)}</button>`).join('')}</div></div>
-    <div class="tiny muted">환율 제공: <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener">ExchangeRate-API</a></div>
+    <div class="row between"><h2 id="h-fx">오늘 환율</h2><button class="iconbtn" data-act="fx-refresh" type="button" aria-label="환율 새로고침" ${fxBusy?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button></div>
+    <div class="fx-hero">
+      <div class="row between"><span class="label">${main} ${curName(main)} · ${rateLabel(main)}</span><span class="tiny muted">${demo ? '예시 환율' : (fxBusy ? '불러오는 중' : (stamp ? stamp + ' 기준' : ''))}</span></div>
+      <div class="fx-big">${r ? fmtR(perUnit(main)) : '-'}<small>원</small></div>
+      <div class="tiny muted">환율 우대 100% = 매매기준율 기준${fxErr && !demo ? ' · 불러오지 못했어요' : ''}</div>
+    </div>
+    ${m ? `<div class="plan-sum">
+      <div><span class="muted">보유</span><b class="num">${fmtFx(main, m.h.fx)}</b></div>
+      <div><span class="muted">평균 산 환율</span><b class="num">${fmtR(m.avg)}원</b></div>
+      <div><span class="muted">넣은 원화</span><b class="num">${won(m.h.krw)}</b></div>
+      <div class="tot"><span>오늘 가치</span><b class="num" style="color:${m.diff>=0?'var(--ok)':'var(--bad)'}">${r?won(m.now):'-'}${r?` <small style="font-weight:600">${m.diff>=0?'+':'−'}${won(Math.abs(m.diff))}</small>`:''}</b></div>
+    </div>` : ''}
+    ${others.length ? `<div class="fx-mini">${others.map(c => { const x = holdLine(c); return `<div class="row between"><span><b>${c}</b> <span class="muted">${rateLabel(c)} ${fxRate(c)?fmtR(perUnit(c))+'원':'-'}</span></span>${x ? `<span class="num small">${fmtFx(c, x.h.fx)} <em class="${x.diff>=0?'gain':'loss'}">${x.diff>=0?'+':'−'}${wonShort(Math.abs(x.diff))}</em></span>` : ''}</div>`; }).join('')}</div>` : ''}
+    ${Object.keys(hold).length > 1 && totIn ? `<div class="row between small"><span class="muted">외화 전체 오늘 가치</span><b class="num">${won(totNow)}</b></div>` : ''}
+    <details class="fx-set"><summary>통화 바꾸기</summary>
+      <div class="field" style="margin-top:10px"><label for="fxMain">크게 볼 통화</label><select class="input" id="fxMain" data-set="fxMain">${Object.keys(CURS).map(c=>`<option value="${c}" ${c===main?'selected':''}>${c} ${curName(c)}</option>`).join('')}</select></div>
+      <div class="field"><label>같이 볼 통화</label><div class="chips">${Object.keys(CURS).filter(c=>c!==main).map(c=>`<button type="button" class="chip-b ${watch.includes(c)?'on':''}" data-act="fx-watch" data-c="${c}">${c}</button>`).join('')}</div></div>
+    </details>
+    <div class="tiny muted">${demo ? '미리보기에서는 예시 환율이에요. GitHub 앱에서는 매일 실제 환율을 불러와요. ' : ''}하루 한 번 바뀌는 시장 기준 환율이라 은행 앱과 몇 원 차이가 날 수 있어요. 제공: <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener">ExchangeRate-API</a></div>
   </section>`;
 }
 function methodCard(){
@@ -1570,7 +1586,7 @@ function viewSavings(){
     <div class="row" style="margin-top:12px;gap:8px"><button class="btn main" data-act="add-saving" type="button">저축 기록하기</button><button class="btn" data-act="add-goal" type="button">목표 만들기</button></div>
   </section>
   ${salaryCard(M)}
-  ${(Object.keys(fxHoldings()).length || (S.settings.fxWatch||[]).length) ? fxCard() : ''}
+  ${fxCard()}
   ${methodCard()}
   <section class="card" aria-labelledby="h-hist">
     <div class="row between"><h2 id="h-hist">월별 기록</h2><span class="small muted">모은 돈 전체 <b class="num" style="color:var(--ink)">${won(total)}</b>${fxGain?` <span style="color:${fxGain>0?'var(--ok)':'var(--bad)'}">(환율 ${fxGain>0?'+':'−'}${wonShort(Math.abs(fxGain))})</span>`:''}</span></div>
@@ -1891,7 +1907,7 @@ function readPlanForm(){
 }
 function openSaving(s){
   const goals = live(S.goals);
-  const d = Object.assign({date:today(), amount:'', goalId:(goals[0]||{}).id||'', memo:'월급 저축', method:'적금', cur:(S.settings.fxWatch||['USD'])[0]||'USD', fx:'', rate:''}, s||{});
+  const d = Object.assign({date:today(), amount:'', goalId:(goals[0]||{}).id||'', memo:'월급 저축', method:'적금', cur:S.settings.fxMain||'JPY', fx:'', rate:''}, s||{});
   sheetCtx = {kind:'saving', draft:d, isNew: !s || !s.id};
   if (d.method === '외화' && !d.rate) d.rate = fxRate(d.cur) ? +(fxRate(d.cur)*curUnit(d.cur)).toFixed(2) : '';
   drawSaving();
@@ -2097,7 +2113,7 @@ document.addEventListener('click', async e => {
     case 'act-del': delete S.settings.salaryActual[btn.dataset.m]; touch(S.settings); commit(); break;
     case 'sv-today-rate': { readSaving(); const d = sheetCtx.draft, r = fxRate(d.cur); if (r){ d.rate = +(r*curUnit(d.cur)).toFixed(2); d.amount = Math.round((+d.fx||0)*d.rate/curUnit(d.cur)); } drawSaving(); break; }
     case 'fx-refresh': loadFx(true); render(); break;
-    case 'fx-watch': { const c = btn.dataset.c, w = S.settings.fxWatch || ['USD']; S.settings.fxWatch = w.includes(c) ? w.filter(x=>x!==c) : w.concat(c); touch(S.settings); commit(); break; }
+    case 'fx-watch': { const c = btn.dataset.c, w = S.settings.fxWatch || []; S.settings.fxWatch = w.includes(c) ? w.filter(x=>x!==c) : w.concat(c); touch(S.settings); commit(); break; }
     case 'tr-add': openTransit(btn.dataset.m); break;
     case 'tr-save': {
       readTransit(); const d = sheetCtx.draft;

@@ -318,6 +318,8 @@ main{display:flex;flex-direction:column;gap:12px}
 /* 설정 */
 .field{display:flex;flex-direction:column;gap:5px}
 .field label{font-size:12.5px;color:var(--muted);font-weight:500}
+.al-hint{grid-column:1/-1;margin-top:-4px;min-height:0}
+.input,select.input{min-height:44px}
 .input,select.input,textarea.input{width:100%;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:10px 12px;min-width:0}
 textarea.input{min-height:110px;resize:vertical;font-size:14px}
 .input:focus{outline:2px solid var(--accent);outline-offset:-1px}
@@ -1605,12 +1607,20 @@ function viewSavings(){
   </section>`;
 }
 /* ============ 화면: 설정 ============ */
+// 금액을 한국식으로 읽어 주고, 만 원 단위로 착각한 것 같으면 알려 줌
+function krRead(n){ n = Math.round(+n||0); if (n >= 10000){ const man = Math.floor(n/10000), rest = n % 10000; return `${man.toLocaleString('ko-KR')}만${rest?' '+rest.toLocaleString('ko-KR'):''} 원`; } return `${n.toLocaleString('ko-KR')}원`; }
+function amountHint(n, i){
+  if (!n) return '';
+  if (n < 10000) return `<span style="color:var(--warn)">${krRead(n)}이에요. 혹시 ${krRead(n*10000)}인가요?</span> <button class="link" type="button" data-act="al-man" data-i="${i}">${krRead(n*10000)}으로 고치기</button>`;
+  return `<span class="muted">${krRead(n)}</span>`;
+}
 function viewPrefs(){
   const st = S.settings, cn = ls.get(CONN) || {};
   const al = st.allowance.map((a,i)=>`<div class="setrow">
       <div class="field"><label for="al-d-${i}">매달</label><select class="input" id="al-d-${i}" data-set="allowance.${i}.day">${Array.from({length:31},(_,k)=>`<option value="${k+1}" ${+a.day===k+1?'selected':''}>${k+1}일</option>`).join('')}</select></div>
-      <div class="field"><label for="al-a-${i}">금액(원)</label><input class="input num" id="al-a-${i}" inputmode="numeric" data-set="allowance.${i}.amount" data-num="1" value="${a.amount?(+a.amount).toLocaleString('ko-KR'):''}" placeholder="0"></div>
+      <div class="field"><label for="al-a-${i}">금액(원)</label><input class="input num" id="al-a-${i}" inputmode="numeric" data-set="allowance.${i}.amount" data-num="1" value="${a.amount?(+a.amount).toLocaleString('ko-KR'):''}" placeholder="예: 200,000"></div>
       <button class="btn sm ghost" data-act="del-al" data-i="${i}" type="button" aria-label="이 용돈 날짜 지우기">지우기</button>
+      <div class="tiny al-hint" id="al-h-${i}">${amountHint(+a.amount, i)}</div>
     </div>`).join('');
   const cards = st.cards.map((c,i)=>`<div class="cardset">
       <div class="field"><label for="c-co-${i}">카드사</label><input class="input" id="c-co-${i}" data-set="cards.${i}.company" value="${esc(c.company||c.name)}"></div>
@@ -1973,8 +1983,18 @@ document.addEventListener('input', e => {
   if ((el.id === 'svFx' || el.id === 'svRate') && sheetCtx && sheetCtx.kind === 'saving'){ const d = sheetCtx.draft; const fx = parseFloat(($('#svFx').value||'').replace(/[^0-9.]/g,''))||0, r = parseFloat(($('#svRate').value||'').replace(/[^0-9.]/g,''))||0; const k = $('#svKrw'); if (k) k.textContent = won(Math.round(fx*r/curUnit(d.cur))); }
   if (el.id === 'lumpAmt' && sheetCtx && sheetCtx.kind === 'lump'){ setTimeout(() => { const d = sheetCtx.draft, card = cardById(d.cardId), x = $('#lumpExtra'); if (x) x.textContent = won(Math.max(0, (parseInt(el.value.replace(/[^0-9]/g,''),10)||0) - recordedFor(card, $('#lumpDate').value))); }, 0); }
   if (el.matches('#txAmt,#fxAmt,#svAmt,#gTarget,[data-num],[id^="st-"]')){
+    // 쉼표를 넣어도 커서가 끝으로 튀지 않게, 커서 앞 숫자 개수를 기억했다가 되돌린다
+    const pos = el.selectionStart ?? el.value.length;
+    const before = el.value.slice(0, pos).replace(/[^0-9]/g,'').length;
     const n = el.value.replace(/[^0-9]/g,'');
-    el.value = n ? parseInt(n,10).toLocaleString('ko-KR') : '';
+    // 맨 앞 숫자를 지우고 새로 넣는 중(예: 200,000 → 00,000 → 500,000)이면 0을 없애지 않고 기다린다
+    const f = !n ? '' : (/^0\d/.test(n) ? el.value : parseInt(n,10).toLocaleString('ko-KR'));
+    if (f !== el.value){
+      el.value = f;
+      let k = 0, c = 0; while (k < f.length && c < before){ if (/\d/.test(f[k])) c++; k++; }
+      try { el.setSelectionRange(k, k); } catch(err){}
+    }
+    if (/^al-a-\d+$/.test(el.id)){ const h = document.getElementById(el.id.replace('al-a-','al-h-')); if (h) h.innerHTML = amountHint(parseInt(n||'0',10), el.id.slice(5)); }
   }
 });
 document.addEventListener('change', async e => {
@@ -2139,6 +2159,7 @@ document.addEventListener('click', async e => {
     case 'off-add': { const d = $('#offDate').value; if (!d){ toast('날짜를 골라 주세요'); break; } const sc = S.settings.salaryCalc; sc.offDays = (sc.offDays||[]).filter(o=>o.date!==d).concat({date:d, absent: $('#offAbs').checked}); touch(S.settings); commit(); toast(HOLIDAYS[d] ? '그날은 이미 공휴일로 빠져 있어요' : '넣었어요. 월급을 다시 계산했어요'); break; }
     case 'off-del': { const sc = S.settings.salaryCalc; sc.offDays = (sc.offDays||[]).filter(o=>o.date!==btn.dataset.d); touch(S.settings); commit(); break; }
     case 'add-al': S.settings.allowance.push({day:1,amount:0}); touch(S.settings); commit(); break;
+    case 'al-man': { const a = S.settings.allowance[+btn.dataset.i]; if (a){ const v = parseInt(($('#al-a-'+btn.dataset.i)||{}).value?.replace(/[^0-9]/g,'')||a.amount,10)||0; a.amount = v*10000; touch(S.settings); commit(); toast(`${krRead(a.amount)}으로 고쳤어요`); } break; }
     case 'del-al': S.settings.allowance.splice(+btn.dataset.i,1); touch(S.settings); commit(); break;
     case 'add-card': S.settings.cards.push({id:uid(), company:'새 카드사', name:'새 카드', kind:'check', billDay:14, cycleStart:1, keys:'', color:'#A38B74'}); touch(S.settings); commit(); break;
     case 'add-cat': { const v = $('#newCat').value.trim(); if (v && !S.settings.categories.includes(v)){ S.settings.categories.splice(S.settings.categories.length-1,0,v); touch(S.settings); commit(); } break; }
